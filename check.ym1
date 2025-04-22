@@ -1,0 +1,33 @@
+name: Check Herat Visa Capacity
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # every 5 minutes
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Herat visa and notify Telegram
+        run: |
+          curl -s -X GET 'https://evisatraveller.mfa.ir/fa/request/applyrequest' > response.html
+          VIEWSTATE=$(grep -oP '__VIEWSTATE" value="\K[^"]+' response.html)
+          EVENTVALIDATION=$(grep -oP '__EVENTVALIDATION" value="\K[^"]+' response.html)
+          VIEWSTATEGENERATOR=$(grep -oP '__VIEWSTATEGENERATOR" value="\K[^"]+' response.html)
+
+          RESPONSE=$(curl -s -X POST 'https://evisatraveller.mfa.ir/fa/request/applyrequest' \
+            -d "__VIEWSTATE=$VIEWSTATE" \
+            -d "__VIEWSTATEGENERATOR=$VIEWSTATEGENERATOR" \
+            -d "__EVENTVALIDATION=$EVENTVALIDATION" \
+            -d "VisaType=ورود" \
+            -d "NationalityId=افغانستان" \
+            -d "PassportType=عادی" \
+            -d "IssuePlaceId=سرکنسولگری جمهوری اسلامی ایران - هرات" \
+            -d "btnSubmit=ثبت و ادامه")
+
+          if [[ "$RESPONSE" != *"ظرفیت درخواست های نمایندگی مورد نظر شما جهت صدور روادید تا اطلاع ثانوی تکمیل است."* ]]; then
+            curl -s -X POST "https://api.telegram.org/bot7992709982:AAGYA2mOzFVdW9imgglAWzlFkwuYbp-YAAo/sendMessage" \
+              -d chat_id=6394651560 \
+              -d text="⚠️ ظرفیت ویزای هرات باز شده! سریع اقدام کن"
+          fi
