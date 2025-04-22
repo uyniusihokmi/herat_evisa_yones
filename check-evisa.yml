@@ -1,0 +1,29 @@
+name: Check E-Visa Herat
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Every 5 minutes
+  workflow_dispatch:
+
+jobs:
+  check-evisa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run Visa Checker
+        run: |
+          sudo apt update
+          sudo apt install -y curl
+          curl -s https://evisatraveller.mfa.ir/fa/request/applyrequest -c cookies.txt -o page.html
+
+          VIEWSTATE=$(grep -oP '__VIEWSTATE" value="\K[^"]+' page.html)
+          EVENTVALIDATION=$(grep -oP '__EVENTVALIDATION" value="\K[^"]+' page.html)
+          VIEWSTATEGENERATOR=$(grep -oP '__VIEWSTATEGENERATOR" value="\K[^"]+' page.html)
+
+          RESPONSE=$(curl -s -b cookies.txt -c cookies.txt -X POST https://evisatraveller.mfa.ir/fa/request/applyrequest           -d "__VIEWSTATE=$VIEWSTATE"           -d "__EVENTVALIDATION=$EVENTVALIDATION"           -d "__VIEWSTATEGENERATOR=$VIEWSTATEGENERATOR"           -d "VisaType=ورود"           -d "NationalityId=افغانستان"           -d "PassportType=عادی"           -d "IssuePlaceId=سرکنسولگری جمهوری اسلامی ایران - هرات"           -d "btnSubmit=ثبت و ادامه")
+
+          if ! echo "$RESPONSE" | grep -q "ظرفیت درخواست های نمایندگی مورد نظر شما جهت صدور روادید تا اطلاع ثانوی تکمیل است"; then
+            curl -s -X POST "https://api.telegram.org/bot7992709982:AAGYA2mOzFVdW9imgglAWzlFkwuYbp-YAAo/sendMessage"             -d chat_id=6394651560             -d text="⚠️ ظرفیت ویزای هرات باز شد!"
+          fi
