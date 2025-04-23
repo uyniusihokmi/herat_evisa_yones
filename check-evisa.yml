@@ -1,4 +1,4 @@
-name: Check E-Visa Herat
+name: python evisa_bot_younes_updated.py
 
 on:
   schedule:
