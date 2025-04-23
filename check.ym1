@@ -1,4 +1,4 @@
-name: Check Herat Visa Capacity
+name: python evisa_bot_younes_updated.py
 
 on:
   schedule:
